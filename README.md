@@ -1,17 +1,21 @@
-# devops-monitoring-stack
-Production-style monitoring and centralized logging stack built with:
+# DevOps Monitoring Stack
 
-- Grafana
-- Prometheus
-- Loki
-- Promtail
-- Docker
-- cAdvisor
-- Node Exporter
-- MySQL Exporter
-- Nginx
+Production-style monitoring and centralized logging stack.
 
----
+## My Contribution
+
+This project was completed as part of a STEP IT Academy team diploma project.
+
+My responsibilities included:
+
+- Configured and maintained Linux servers (GitLab, App and Production).
+- Deployed and configured Docker Compose services.
+- Configured Prometheus monitoring for multiple servers.
+- Created and configured Grafana dashboards.
+- Configured Loki and Promtail for centralized log collection.
+- Configured Node Exporter, cAdvisor and MySQL Exporter.
+- Configured Nginx log collection.
+- Verified communication between monitored servers and the monitoring stack.
 
 # Features
 
