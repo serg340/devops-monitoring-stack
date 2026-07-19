@@ -17,6 +17,17 @@ My responsibilities included:
 - Configured Nginx log collection.
 - Verified communication between monitored servers and the monitoring stack.
 
+## Technologies
+
+- Grafana
+- Prometheus
+- Loki
+- Promtail
+- Docker
+- cAdvisor
+- Node Exporter
+- MySQL Exporter
+- Nginx
 # Features
 
 - Infrastructure monitoring
