@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   nginx:
     image: nginx:latest
@@ -19,6 +17,7 @@ services:
     container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sto_prod}
     volumes:
       - mysql-data:/var/lib/mysql
     restart: unless-stopped
