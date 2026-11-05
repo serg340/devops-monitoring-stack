@@ -7,8 +7,8 @@
 nginx/certs/
 
 loki-data/
+alloy-data/
 loki-wal/
-positions/
 data/
 backups/
 
