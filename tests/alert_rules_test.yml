@@ -54,6 +54,7 @@ tests:
         exp_alerts:
           - exp_labels:
               instance: "172.17.2.23:9100"
+              job: node
               host: production
               role: production
               severity: warning
@@ -74,6 +75,7 @@ tests:
         exp_alerts:
           - exp_labels:
               instance: "172.17.2.20:9100"
+              job: node
               host: gitlab
               role: gitlab
               fstype: ext4
