@@ -21,7 +21,8 @@ Linux hosts and Docker containers
    cAdvisor               |
         |                 v
         v                Loki
-    Prometheus             |
+    Prometheus -----> Alertmanager
+        |                 |
         \                 /
          v               v
              Grafana
@@ -37,7 +38,8 @@ Linux hosts and Docker containers
 |---|---|---|
 | Nginx | HTTPS reverse proxy | Host ports 80 and 443 |
 | Grafana | Dashboards | Internal Docker network, via Nginx |
-| Prometheus | Metrics collection and TSDB storage (3 days / 2 GB) | Internal Docker network; persistent named volume |
+| Prometheus | Metrics collection, alert evaluation and TSDB storage (3 days / 2 GB) | Internal Docker network; persistent named volume |
+| Alertmanager | Alert grouping and routing | Internal Docker network; UI bound to host loopback at 127.0.0.1:9093 |
 | Loki | Log storage with TSDB index and seven-day retention | Internal Docker network |
 | Grafana Alloy | Log collection and shipping | Internal Docker network; read-only host log mounts |
 | Node Exporter | Host metrics | Internal Docker network on this host |
@@ -126,9 +128,13 @@ The script removes its local temporary dump after the upload command succeeds. A
 ├── backup.sh
 ├── docker-compose.yml
 ├── loki-config.yaml          # TSDB v13, filesystem storage, 7-day retention
+├── alertmanager.yml
+├── alert_rules.yml
 ├── alloy-config.alloy
 └── prometheus.yml
 ```
+
+Prometheus evaluates the rules in `alert_rules.yml` and sends firing alerts to Alertmanager. The initial Alertmanager route uses a named `null` receiver: alerts are evaluated, grouped and visible in the Alertmanager UI, but no email, chat or webhook notifications are delivered until a real receiver is configured. The Alertmanager UI is bound to host loopback at `127.0.0.1:9093`; access it locally or through an SSH tunnel, not by exposing it publicly.
 
 Prometheus stores TSDB data in the persistent `prometheus-data` Docker volume. Its configured retention is three days or 2 GB, whichever limit is reached first. The volume preserves metrics across container recreation; it is not a backup. Prometheus also scrapes its own `/metrics` endpoint. Scrape targets carry `host` and `role` labels so dashboards and queries can distinguish the monitoring, GitLab, application, production and database hosts. cAdvisor collection is intentionally limited to selected container CPU, memory, network and lifecycle metrics.
 
@@ -138,7 +144,7 @@ The former Promtail configuration has been replaced by `alloy-config.alloy`. All
 
 GitHub Actions runs two workflows on pushes to `main` and `security-hardening`, and on pull requests targeting `main`:
 
-- **Validate monitoring stack** checks Docker Compose interpolation, the Prometheus configuration, the Loki configuration, the Grafana Alloy configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
+- **Validate monitoring stack** checks Docker Compose interpolation, Prometheus configuration and alert rules, Alertmanager configuration, Loki configuration, Grafana Alloy configuration, Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
 - **Backup and restore integration test** starts disposable MySQL and MinIO containers, runs `backup.sh`, restores the SQL dump into a fresh MySQL container, and verifies a known test record.
 
 These workflows validate configuration and the backup/restore script in an isolated CI environment. They do not deploy the stack or verify production server, firewall, TLS, or persistent-storage settings.
