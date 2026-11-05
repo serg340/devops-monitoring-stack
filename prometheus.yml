@@ -10,28 +10,64 @@ scrape_configs:
     static_configs:
       - targets:
           - "prometheus:9090"
+        labels:
+          host: "monitoring"
+          role: "monitoring"
 
   - job_name: "node"
     static_configs:
       - targets:
-          - "node_exporter:9100" # Local monitoring host
-          - "172.17.2.20:9100"   # GitLab server
-          - "172.17.2.22:9100"   # App server
-          - "172.17.2.23:9100"   # Production server
+          - "node_exporter:9100"
+        labels:
+          host: "monitoring"
+          role: "monitoring"
+      - targets:
+          - "172.17.2.20:9100"
+        labels:
+          host: "gitlab"
+          role: "gitlab"
+      - targets:
+          - "172.17.2.22:9100"
+        labels:
+          host: "app"
+          role: "application"
+      - targets:
+          - "172.17.2.23:9100"
+        labels:
+          host: "production"
+          role: "production"
 
   - job_name: "cadvisor"
     static_configs:
       - targets:
-          - "cadvisor:8080"      # Local monitoring host
-          - "172.17.2.20:8080"   # GitLab server
-          - "172.17.2.22:8080"   # App server
-          - "172.17.2.23:8080"   # Production server
+          - "cadvisor:8080"
+        labels:
+          host: "monitoring"
+          role: "monitoring"
+      - targets:
+          - "172.17.2.20:8080"
+        labels:
+          host: "gitlab"
+          role: "gitlab"
+      - targets:
+          - "172.17.2.22:8080"
+        labels:
+          host: "app"
+          role: "application"
+      - targets:
+          - "172.17.2.23:8080"
+        labels:
+          host: "production"
+          role: "production"
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: 'container_cpu_usage_seconds_total|container_memory_usage_bytes|container_network_receive_bytes_total|container_network_transmit_bytes_total'
+        regex: 'container_cpu_usage_seconds_total|container_memory_usage_bytes|container_network_receive_bytes_total|container_network_transmit_bytes_total|container_last_seen|container_start_time_seconds'
         action: keep
 
   - job_name: "mysql"
     static_configs:
       - targets:
           - "mysqld_exporter:9104"
+        labels:
+          host: "monitoring"
+          role: "database"
