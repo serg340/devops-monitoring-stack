@@ -51,7 +51,7 @@ Nginx is the only publicly published service. MinIO is bound to loopback so a lo
 ## Configuration
 
 1. Install Docker Engine and the Docker Compose plugin.
-2. Copy the example environment file:
+2. Copy the example environment file (the default database name is `sto_prod`):
    ```bash
    cp .env.example .env
    ```
