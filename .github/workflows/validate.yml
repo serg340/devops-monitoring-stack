@@ -35,6 +35,13 @@ jobs:
             prom/prometheus:v3.15.1 \
             check config /etc/prometheus/prometheus.yml
 
+      - name: Validate Loki configuration
+        run: |
+          docker run --rm \
+            -v "$PWD/loki-config.yaml:/etc/loki/config.yaml:ro" \
+            grafana/loki:3.7.9 \
+            -config.file=/etc/loki/config.yaml -verify-config=true
+
       - name: Validate Grafana Alloy configuration
         run: |
           docker run --rm \
