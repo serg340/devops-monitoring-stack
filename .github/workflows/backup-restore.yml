@@ -93,12 +93,12 @@ jobs:
             pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data --console-address ":9001"
 
           for attempt in $(seq 1 60); do
-            if docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -uroot --silent' >/dev/null 2>&1; then
+            if docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"' >/dev/null 2>&1; then
               break
             fi
             sleep 2
           done
-          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -uroot --silent'
+          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"'
 
           for attempt in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
@@ -149,12 +149,12 @@ jobs:
             mysql:8
 
           for attempt in $(seq 1 60); do
-            if docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -uroot --silent' >/dev/null 2>&1; then
+            if docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"' >/dev/null 2>&1; then
               break
             fi
             sleep 2
           done
-          docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -uroot --silent'
+          docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"'
 
           docker exec -i mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot sto_restore' < "$RESTORE_FILE"
           RESULT="$(docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_restore -e "SELECT marker FROM backup_restore_check WHERE id = 1"')"
