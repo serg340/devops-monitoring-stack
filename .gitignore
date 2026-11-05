@@ -10,6 +10,7 @@ loki-data/
 loki-wal/
 positions/
 data/
+backups/
 
 *.log
 
