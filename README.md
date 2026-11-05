@@ -130,7 +130,7 @@ The script removes its local temporary dump after the upload command succeeds. A
 └── prometheus.yml
 ```
 
-Prometheus stores TSDB data in the persistent `prometheus-data` Docker volume. Its configured retention is three days or 2 GB, whichever limit is reached first. The volume preserves metrics across container recreation; it is not a backup. Prometheus also scrapes its own `/metrics` endpoint.
+Prometheus stores TSDB data in the persistent `prometheus-data` Docker volume. Its configured retention is three days or 2 GB, whichever limit is reached first. The volume preserves metrics across container recreation; it is not a backup. Prometheus also scrapes its own `/metrics` endpoint. Scrape targets carry `host` and `role` labels so dashboards and queries can distinguish the monitoring, GitLab, application, production and database hosts. cAdvisor collection is intentionally limited to selected container CPU, memory, network and lifecycle metrics.
 
 The former Promtail configuration has been replaced by `alloy-config.alloy`. Alloy persists its read positions and state under the ignored `alloy-data/` directory. Docker container logs are tailed from the host's `json-file` log paths; the Docker socket is not mounted.
 
