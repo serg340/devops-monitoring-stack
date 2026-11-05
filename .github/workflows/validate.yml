@@ -27,13 +27,27 @@ jobs:
       - name: Check backup script syntax
         run: bash -n backup.sh
 
-      - name: Validate Prometheus configuration
+      - name: Validate Prometheus configuration and alert rules
         run: |
           docker run --rm \
             -v "$PWD/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "$PWD/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro" \
             --entrypoint /bin/promtool \
             prom/prometheus:v3.15.1 \
             check config /etc/prometheus/prometheus.yml
+          docker run --rm \
+            -v "$PWD/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro" \
+            --entrypoint /bin/promtool \
+            prom/prometheus:v3.15.1 \
+            check rules /etc/prometheus/alert_rules.yml
+
+      - name: Validate Alertmanager configuration
+        run: |
+          docker run --rm \
+            -v "$PWD/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+            --entrypoint /bin/amtool \
+            prom/alertmanager:v0.34.2 \
+            check-config /etc/alertmanager/alertmanager.yml
 
       - name: Validate Loki configuration
         run: |
