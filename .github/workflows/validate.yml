@@ -41,6 +41,15 @@ jobs:
             prom/prometheus:v3.15.1 \
             check rules /etc/prometheus/alert_rules.yml
 
+      - name: Test Prometheus alert rules
+        run: |
+          docker run --rm \\
+            -v "$PWD/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro" \\
+            -v "$PWD/tests/alert_rules_test.yml:/etc/prometheus/tests/alert_rules_test.yml:ro" \\
+            --entrypoint /bin/promtool \\
+            prom/prometheus:v3.15.1 \\
+            test rules /etc/prometheus/tests/alert_rules_test.yml
+
       - name: Validate Alertmanager configuration
         run: |
           docker run --rm \
