@@ -114,7 +114,7 @@ jobs:
           MINIO_ROOT_USER: ciadmin
           MINIO_ROOT_PASSWORD: ci-only-minio-password
         run: |
-          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot sto_prod' <<'SQL'
+          docker exec -i mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot sto_prod' <<'SQL'
           CREATE TABLE backup_restore_check (
             id INT PRIMARY KEY,
             marker VARCHAR(100) NOT NULL
