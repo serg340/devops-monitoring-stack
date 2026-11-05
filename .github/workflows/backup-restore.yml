@@ -17,16 +17,60 @@ jobs:
 
       - name: Prepare MinIO client
         run: |
-          mkdir -p "$RUNNER_TEMP/mc-config"
+          command -v aws
           cat > /usr/local/bin/mc <<'EOF'
           #!/usr/bin/env bash
           set -Eeuo pipefail
-          exec docker run --rm --network host \
-            -v "${RUNNER_TEMP}/mc-config:/root/.mc" \
-            -v "${RUNNER_TEMP}:${RUNNER_TEMP}" \
-            -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
-            -w "${GITHUB_WORKSPACE}" \
-            minio/mc:latest "$@"
+          CONFIG="${RUNNER_TEMP}/mc-test-config"
+          mkdir -p "$CONFIG"
+          ALIAS_FILE="$CONFIG/alias"
+          load_alias() {
+            test -f "$ALIAS_FILE" || { echo "MinIO alias is not configured" >&2; exit 1; }
+            # shellcheck disable=SC1090
+            source "$ALIAS_FILE"
+          }
+          case "${1:-}" in
+            alias)
+              shift
+              test "${1:-}" = set
+              shift
+              printf 'ENDPOINT=%q\nACCESS_KEY=%q\nSECRET_KEY=%q\n' "$2" "$3" "$4" > "$ALIAS_FILE"
+              ;;
+            mb)
+              shift
+              [[ "${1:-}" == --ignore-existing ]] && shift
+              load_alias
+              BUCKET="${1#*/}"
+              AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                aws --endpoint-url "$ENDPOINT" s3 mb "s3://$BUCKET" 2>/dev/null || true
+              ;;
+            cp)
+              shift
+              load_alias
+              SOURCE="$1"
+              DEST="$2"
+              if [[ "$SOURCE" == local/* ]]; then
+                KEY="${SOURCE#*/}"
+                AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                  aws --endpoint-url "$ENDPOINT" s3 cp "s3://$KEY" "$DEST"
+              elif [[ "$DEST" == local/* ]]; then
+                KEY="${DEST#*/}"
+                AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                  aws --endpoint-url "$ENDPOINT" s3 cp "$SOURCE" "s3://$KEY"
+              else
+                echo "Unsupported mc cp path" >&2; exit 1
+              fi
+              ;;
+            ls)
+              shift
+              load_alias
+              KEY="${1#*/}"
+              AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                aws --endpoint-url "$ENDPOINT" s3 ls "s3://$KEY"
+              ;;
+            --version) echo "mc compatibility shim using AWS CLI";;
+            *) echo "Unsupported mc command: ${1:-}" >&2; exit 1;;
+          esac
           EOF
           chmod +x /usr/local/bin/mc
           mc --version
