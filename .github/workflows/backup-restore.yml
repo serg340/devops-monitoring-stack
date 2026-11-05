@@ -55,6 +55,7 @@ jobs:
                   aws --endpoint-url "$ENDPOINT" s3 cp "s3://$KEY" "$DEST"
               elif [[ "$DEST" == local/* ]]; then
                 KEY="${DEST#*/}"
+                if [[ "$KEY" == */ ]]; then KEY="${KEY}$(basename "$SOURCE")"; fi
                 AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
                   aws --endpoint-url "$ENDPOINT" s3 cp "$SOURCE" "s3://$KEY"
               else
@@ -89,7 +90,7 @@ jobs:
             -p 9000:9000 \
             -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
             -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
-            minio/minio:latest server /data --console-address ":9001"
+            quay.io/minio/minio:latest server /data --console-address ":9001"
 
           for attempt in $(seq 1 60); do
             if docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -uroot --silent' >/dev/null 2>&1; then
