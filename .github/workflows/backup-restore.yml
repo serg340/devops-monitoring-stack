@@ -125,6 +125,7 @@ jobs:
 
           mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
           mc mb --ignore-existing local/mysql-backups
+          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_prod -e "SHOW TABLES LIKE \"backup_restore_check\""' | grep -qx backup_restore_check
 
       - name: Run backup script
         env:
@@ -142,6 +143,7 @@ jobs:
           RESTORE_FILE="$RUNNER_TEMP/restore.sql"
           mc cp "local/mysql-backups/$BACKUP_OBJECT" "$RESTORE_FILE"
           test -s "$RESTORE_FILE"
+          grep -q 'backup_restore_check' "$RESTORE_FILE" || { echo "SQL dump does not contain the expected test table" >&2; exit 1; }
 
           docker run -d --name mysql-restore \
             -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
