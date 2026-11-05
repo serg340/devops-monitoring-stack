@@ -8,7 +8,7 @@ A Docker Compose-based monitoring and centralized logging stack built as part of
 - Deployed and maintained Docker Compose services.
 - Configured Prometheus monitoring across multiple hosts.
 - Built Grafana dashboards.
-- Configured Loki and Promtail for centralized log collection.
+- Configured Loki and Grafana Alloy for centralized log collection.
 - Integrated Node Exporter, cAdvisor and MySQL Exporter.
 - Configured Nginx as the external HTTPS entry point.
 
@@ -39,7 +39,7 @@ Linux hosts and Docker containers
 | Grafana | Dashboards | Internal Docker network, via Nginx |
 | Prometheus | Metrics storage and scraping | Internal Docker network |
 | Loki | Log storage | Internal Docker network |
-| Promtail | Log shipping | Internal Docker network |
+| Grafana Alloy | Log collection and shipping | Internal Docker network; Docker socket access |
 | Node Exporter | Host metrics | Internal Docker network on this host |
 | cAdvisor | Container metrics | Internal Docker network on this host |
 | MySQL | Database | Internal Docker network |
@@ -102,7 +102,7 @@ The script removes its local temporary dump after the upload command succeeds. A
 - Credentials are supplied through environment variables; use a private, untracked `.env` file on the host.
 - Rotate any credentials that were previously committed if they were ever used outside a disposable test environment.
 - Removing a secret from the current file does not remove it from Git history. If a committed credential was real, rotate it and consider rewriting repository history.
-- Keep the Docker socket mount for Promtail protected: access to the Docker socket is effectively highly privileged.
+- Grafana Alloy reads Docker container logs through `/var/run/docker.sock`. Access to the Docker socket is highly privileged; keep the socket mount restricted to this trusted service and do not expose the Alloy UI publicly.
 - Pin image versions and review updates before using this educational stack in production.
 
 ## Project structure
@@ -125,17 +125,17 @@ The script removes its local temporary dump after the upload command succeeds. A
 ├── backup.sh
 ├── docker-compose.yml
 ├── loki-config.yaml
-├── prometheus.yml
-└── promtail-config.yaml
+├── alloy-config.alloy
+└── prometheus.yml
 ```
 
-The repository also currently contains `nginx/nginx.conf.save`, a legacy saved configuration that is not mounted by Docker Compose. Review it and remove it if it is no longer needed.
+The former Promtail configuration has been replaced by `alloy-config.alloy`. Alloy persists its read positions and state under the ignored `alloy-data/` directory.
 
 ## Continuous integration
 
 GitHub Actions runs two workflows on pushes to `main` and `security-hardening`, and on pull requests targeting `main`:
 
-- **Validate monitoring stack** checks Docker Compose interpolation, the Prometheus configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
+- **Validate monitoring stack** checks Docker Compose interpolation, the Prometheus configuration, the Grafana Alloy configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
 - **Backup and restore integration test** starts disposable MySQL and MinIO containers, runs `backup.sh`, restores the SQL dump into a fresh MySQL container, and verifies a known test record.
 
 These workflows validate configuration and the backup/restore script in an isolated CI environment. They do not deploy the stack or verify production server, firewall, TLS, or persistent-storage settings.
