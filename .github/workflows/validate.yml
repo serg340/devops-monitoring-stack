@@ -60,6 +60,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+            -v "$PWD/secrets:/run/secrets:ro" \
             --entrypoint /bin/amtool \
             prom/alertmanager:v0.34.2 \
             check-config /etc/alertmanager/alertmanager.yml
