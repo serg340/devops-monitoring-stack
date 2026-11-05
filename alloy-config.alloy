@@ -3,31 +3,24 @@ logging {
   format = "logfmt"
 }
 
-discovery.docker "linux" {
-  host             = "unix:///var/run/docker.sock"
-  refresh_interval = "5s"
+local.file_match "docker_logs" {
+  path_targets = [{
+    "__path__"    = "/var/lib/docker/containers/*/*-json.log",
+    "job"         = "docker",
+    "host"        = "db-monitor",
+    "environment" = "monitoring",
+  }]
 }
 
-discovery.relabel "docker_logs" {
-  targets = []
+loki.process "docker_logs" {
+  stage.docker {}
 
-  rule {
-    source_labels = ["__meta_docker_container_name"]
-    regex         = "/(.*)"
-    target_label  = "container"
-  }
+  forward_to = [loki.write.local.receiver]
 }
 
-loki.source.docker "containers" {
-  host          = "unix:///var/run/docker.sock"
-  targets       = discovery.docker.linux.targets
-  labels        = {
-    job         = "docker",
-    host        = "db-monitor",
-    environment = "monitoring",
-  }
-  relabel_rules = discovery.relabel.docker_logs.rules
-  forward_to    = [loki.write.local.receiver]
+loki.source.file "docker_logs" {
+  targets    = local.file_match.docker_logs.targets
+  forward_to = [loki.process.docker_logs.receiver]
 }
 
 local.file_match "system_logs" {
