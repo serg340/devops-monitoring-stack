@@ -32,7 +32,7 @@ jobs:
           docker run --rm \
             -v "$PWD/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
             --entrypoint /bin/promtool \
-            prom/prometheus:latest \
+            prom/prometheus:v3.15.1 \
             check config /etc/prometheus/prometheus.yml
 
       - name: Validate Nginx configuration
@@ -47,4 +47,4 @@ jobs:
           docker run --rm --network ci-net \
             -v "$PWD/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" \
             -v "$PWD/nginx/ssl:/etc/nginx/ssl:ro" \
-            nginx:latest nginx -t
+            nginx:1.31.8 nginx -t
