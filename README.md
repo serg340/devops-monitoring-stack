@@ -95,7 +95,7 @@ Docker Compose reads `.env` for variable substitution. The `.env.example` file c
 5. Validate and recreate Alertmanager:
    ```bash
    docker compose config --quiet
-   docker run --rm \\\n     -v "$PWD/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \\\n     -v "$PWD/secrets:/run/secrets:ro" \\\n     --entrypoint /bin/amtool prom/alertmanager:v0.34.2 \\\n     check-config /etc/alertmanager/alertmanager.yml
+   docker run --rm -v "$PWD/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" -v "$PWD/secrets:/run/secrets:ro" --entrypoint /bin/amtool prom/alertmanager:v0.34.2 check-config /etc/alertmanager/alertmanager.yml
    docker compose up -d --force-recreate alertmanager
    ```
 6. Trigger a test alert (or wait for a real one) and confirm it arrives in Telegram. Resolved notifications are enabled.
