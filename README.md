@@ -17,7 +17,7 @@ A Docker Compose-based monitoring and centralized logging stack built as part of
 ```text
 Linux hosts and Docker containers
         |                    |
-   Node Exporter          Promtail
+   Node Exporter          Grafana Alloy
    cAdvisor               |
         |                 v
         v                Loki
@@ -39,7 +39,7 @@ Linux hosts and Docker containers
 | Grafana | Dashboards | Internal Docker network, via Nginx |
 | Prometheus | Metrics storage and scraping | Internal Docker network |
 | Loki | Log storage | Internal Docker network |
-| Grafana Alloy | Log collection and shipping | Internal Docker network; Docker socket access |
+| Grafana Alloy | Log collection and shipping | Internal Docker network; read-only host log mounts |
 | Node Exporter | Host metrics | Internal Docker network on this host |
 | cAdvisor | Container metrics | Internal Docker network on this host |
 | MySQL | Database | Internal Docker network |
@@ -102,7 +102,8 @@ The script removes its local temporary dump after the upload command succeeds. A
 - Credentials are supplied through environment variables; use a private, untracked `.env` file on the host.
 - Rotate any credentials that were previously committed if they were ever used outside a disposable test environment.
 - Removing a secret from the current file does not remove it from Git history. If a committed credential was real, rotate it and consider rewriting repository history.
-- Grafana Alloy reads Docker container logs through `/var/run/docker.sock`. Access to the Docker socket is highly privileged; keep the socket mount restricted to this trusted service and do not expose the Alloy UI publicly.
+- Grafana Alloy reads Docker JSON log files through a read-only `/var/lib/docker/containers` mount instead of accessing `/var/run/docker.sock`. This avoids granting Alloy Docker API control. The configuration assumes Docker's `json-file` logging driver; if the host uses another logging driver or a different data root, adjust the path and collection method.
+- Alloy runs as root in the container so it can read host log files. Keep its mounts limited to the required log directories and do not expose its HTTP UI publicly.
 - Pin image versions and review updates before using this educational stack in production.
 
 ## Project structure
@@ -129,7 +130,7 @@ The script removes its local temporary dump after the upload command succeeds. A
 └── prometheus.yml
 ```
 
-The former Promtail configuration has been replaced by `alloy-config.alloy`. Alloy persists its read positions and state under the ignored `alloy-data/` directory.
+The former Promtail configuration has been replaced by `alloy-config.alloy`. Alloy persists its read positions and state under the ignored `alloy-data/` directory. Docker container logs are tailed from the host's `json-file` log paths; the Docker socket is not mounted.
 
 ## Continuous integration
 
