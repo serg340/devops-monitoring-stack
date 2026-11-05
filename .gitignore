@@ -15,3 +15,7 @@ backups/
 *.log
 
 grafana.db
+
+# Local runtime secrets (never commit Telegram credentials)
+secrets/*
+!secrets/.gitkeep
