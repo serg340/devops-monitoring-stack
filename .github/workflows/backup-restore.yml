@@ -145,7 +145,7 @@ jobs:
 
           docker run -d --name mysql-restore \
             -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
-            -e MYSQL_DATABASE=sto_restore \
+            -e MYSQL_DATABASE=sto_prod \
             mysql:8
 
           for attempt in $(seq 1 60); do
@@ -156,8 +156,8 @@ jobs:
           done
           docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"'
 
-          docker exec -i mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot sto_restore' < "$RESTORE_FILE"
-          RESULT="$(docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_restore -e "SELECT marker FROM backup_restore_check WHERE id = 1"')"
+          docker exec -i mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot sto_prod' < "$RESTORE_FILE"
+          RESULT="$(docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_prod -e "SELECT marker FROM backup_restore_check WHERE id = 1"')"
           test "$RESULT" = "backup-restore-integration-ok"
           echo "Backup and restore integration test passed."
 
