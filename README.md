@@ -38,7 +38,7 @@ Linux hosts and Docker containers
 | Nginx | HTTPS reverse proxy | Host ports 80 and 443 |
 | Grafana | Dashboards | Internal Docker network, via Nginx |
 | Prometheus | Metrics storage and scraping | Internal Docker network |
-| Loki | Log storage | Internal Docker network |
+| Loki | Log storage with TSDB index and seven-day retention | Internal Docker network |
 | Grafana Alloy | Log collection and shipping | Internal Docker network; read-only host log mounts |
 | Node Exporter | Host metrics | Internal Docker network on this host |
 | cAdvisor | Container metrics | Internal Docker network on this host |
@@ -125,7 +125,7 @@ The script removes its local temporary dump after the upload command succeeds. A
 ├── .gitignore
 ├── backup.sh
 ├── docker-compose.yml
-├── loki-config.yaml
+├── loki-config.yaml          # TSDB v13, filesystem storage, 7-day retention
 ├── alloy-config.alloy
 └── prometheus.yml
 ```
@@ -136,7 +136,7 @@ The former Promtail configuration has been replaced by `alloy-config.alloy`. All
 
 GitHub Actions runs two workflows on pushes to `main` and `security-hardening`, and on pull requests targeting `main`:
 
-- **Validate monitoring stack** checks Docker Compose interpolation, the Prometheus configuration, the Grafana Alloy configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
+- **Validate monitoring stack** checks Docker Compose interpolation, the Prometheus configuration, the Loki configuration, the Grafana Alloy configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
 - **Backup and restore integration test** starts disposable MySQL and MinIO containers, runs `backup.sh`, restores the SQL dump into a fresh MySQL container, and verifies a known test record.
 
 These workflows validate configuration and the backup/restore script in an isolated CI environment. They do not deploy the stack or verify production server, firewall, TLS, or persistent-storage settings.
