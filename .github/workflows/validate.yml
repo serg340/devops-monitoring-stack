@@ -31,8 +31,9 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            --entrypoint /bin/promtool \
             prom/prometheus:latest \
-            promtool check config /etc/prometheus/prometheus.yml
+            check config /etc/prometheus/prometheus.yml
 
       - name: Validate Nginx configuration
         run: |
