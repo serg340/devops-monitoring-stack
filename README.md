@@ -147,6 +147,29 @@ GitHub Actions runs two workflows on pushes to `main` and `security-hardening`, 
 - **Validate monitoring stack** checks Docker Compose interpolation, Prometheus configuration and alert rules, Alertmanager configuration, Loki configuration, Grafana Alloy configuration, Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
 - **Backup and restore integration test** starts disposable MySQL and MinIO containers, runs `backup.sh`, restores the SQL dump into a fresh MySQL container, and verifies a known test record.
 
+### Automated alert tests
+
+The validation workflow runs `promtool test rules` against five alert scenarios:
+
+| Alert | What the test covers |
+|---|---|
+| `PrometheusTargetDown` | A scrape target becomes unavailable |
+| `HostHighCPU` | Host CPU usage exceeds the configured threshold |
+| `HostLowMemory` | Available host memory falls below the configured threshold |
+| `HostFilesystemAlmostFull` | Free space on a monitored filesystem falls below the configured threshold |
+| `AlertmanagerDown` | Prometheus cannot scrape Alertmanager |
+
+The test fixtures include the `job="node"` label used by the Node Exporter metrics, so the expected alert labels match Prometheus' evaluated series.
+
+### Latest verified run
+
+Both workflows completed successfully on commit `dd141758968dafd7f7fd92a77c5fb7dea752d1ca` (5 November 2026):
+
+- [Validate monitoring stack — run #55](https://github.com/serg340/devops-monitoring-stack/actions/runs/42010960702)
+- [Backup and restore integration test — run #46](https://github.com/serg340/devops-monitoring-stack/actions/runs/42010960542)
+
+The backup/restore integration test created a SQL backup in MinIO, restored it into a fresh MySQL container, and verified the expected test record.
+
 These workflows validate configuration and the backup/restore script in an isolated CI environment. They do not deploy the stack or verify production server, firewall, TLS, or persistent-storage settings.
 
 ## Disclaimer
