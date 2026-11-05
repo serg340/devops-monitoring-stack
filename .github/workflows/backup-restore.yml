@@ -3,6 +3,7 @@ name: Backup and restore integration test
 on:
   push:
     branches:
+      - main
       - security-hardening
   pull_request:
     branches:
@@ -138,7 +139,7 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: ci-only-mysql-password
         run: |
-          BACKUP_OBJECT="$(mc ls local/mysql-backups/ | awk '{print $NF}' | grep '\.sql$' | head -n 1)"
+          BACKUP_OBJECT="$(mc ls local/mysql-backups/ | awk '{print $NF}' | grep '\\.sql$' | head -n 1)"
           test -n "$BACKUP_OBJECT"
           RESTORE_FILE="$RUNNER_TEMP/restore.sql"
           mc cp "local/mysql-backups/$BACKUP_OBJECT" "$RESTORE_FILE"
