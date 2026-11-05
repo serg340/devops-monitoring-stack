@@ -1,0 +1,50 @@
+name: Validate monitoring stack
+
+on:
+  push:
+    branches:
+      - main
+      - security-hardening
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose environment
+        run: |
+          cp .env.example .env
+          sed -i 's/CHANGE_ME_TO_A_LONG_RANDOM_PASSWORD/temporary-ci-only-password/g; s/CHANGE_ME/temporary-ci-user/g; s/exporter:CHANGE_ME@/exporter:temporary-ci-password@/' .env
+
+      - name: Validate Docker Compose configuration
+        run: docker compose config --quiet
+
+      - name: Check backup script syntax
+        run: bash -n backup.sh
+
+      - name: Validate Prometheus configuration
+        run: |
+          docker run --rm \
+            -v "$PWD/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            --entrypoint /bin/promtool \
+            prom/prometheus:latest \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: Validate Nginx configuration
+        run: |
+          mkdir -p nginx/ssl
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout nginx/ssl/privkey.pem \
+            -out nginx/ssl/fullchain.pem \
+            -subj "/CN=localhost"
+          docker network create ci-net
+          docker run -d --name grafana-ci --network ci-net --network-alias grafana busybox:1.36 sleep 300
+          docker run --rm --network ci-net \
+            -v "$PWD/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" \
+            -v "$PWD/nginx/ssl:/etc/nginx/ssl:ro" \
+            nginx:latest nginx -t
