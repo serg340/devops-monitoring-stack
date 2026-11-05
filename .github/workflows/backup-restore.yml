@@ -15,9 +15,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install MinIO client
+      - name: Prepare MinIO client
         run: |
-          curl -fsSL https://github.com/minio/mc/releases/latest/download/mc -o /usr/local/bin/mc
+          mkdir -p "$RUNNER_TEMP/mc-config"
+          cat > /usr/local/bin/mc <<'EOF'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          exec docker run --rm --network host \
+            -v "${RUNNER_TEMP}/mc-config:/root/.mc" \
+            -v "${RUNNER_TEMP}:${RUNNER_TEMP}" \
+            -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
+            -w "${GITHUB_WORKSPACE}" \
+            minio/mc:latest "$@"
+          EOF
           chmod +x /usr/local/bin/mc
           mc --version
 
