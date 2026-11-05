@@ -2,24 +2,21 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-
   - job_name: "node"
-
     static_configs:
       - targets:
-          - "node_exporter:9100"     # DB monitor сервер
-          - "172.17.2.20:9100"       # GitLab server
-          - "172.17.2.22:9100"       # App server
-          - "172.17.2.23:9100"       # Prod server
+          - "node_exporter:9100" # Local monitoring host
+          - "172.17.2.20:9100"   # GitLab server
+          - "172.17.2.22:9100"   # App server
+          - "172.17.2.23:9100"   # Production server
 
   - job_name: "cadvisor"
     static_configs:
       - targets:
-          - 172.17.2.21:8080 # db-monitor
-          - 172.17.2.20:8080 # gitlab-server
-          - 172.17.2.22:8080 # app-server
-          - 172.17.2.23:8080 # prod-server
-
+          - "cadvisor:8080"      # Local monitoring host
+          - "172.17.2.20:8080"   # GitLab server
+          - "172.17.2.22:8080"   # App server
+          - "172.17.2.23:8080"   # Production server
     metric_relabel_configs:
       - source_labels: [__name__]
         regex: 'container_cpu_usage_seconds_total|container_memory_usage_bytes|container_network_receive_bytes_total|container_network_transmit_bytes_total'
