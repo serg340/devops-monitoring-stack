@@ -84,7 +84,7 @@ Docker Compose reads `.env` for variable substitution. The `.env.example` file c
    chmod 700 secrets
    umask 077
    read -rsp "Telegram bot token: " TELEGRAM_TOKEN
-   printf '\\n'
+   printf '\n'
    printf '%s' "$TELEGRAM_TOKEN" > secrets/telegram_bot_token
    unset TELEGRAM_TOKEN
    read -rp "Telegram chat ID: " TELEGRAM_CHAT_ID
@@ -95,8 +95,7 @@ Docker Compose reads `.env` for variable substitution. The `.env.example` file c
 5. Validate and recreate Alertmanager:
    ```bash
    docker compose config --quiet
-   docker compose run --rm --no-deps alertmanager \\
-     amtool check-config /etc/alertmanager/alertmanager.yml
+   docker compose run --rm --no-deps alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
    docker compose up -d --force-recreate alertmanager
    ```
 6. Trigger a test alert (or wait for a real one) and confirm it arrives in Telegram. Resolved notifications are enabled.
