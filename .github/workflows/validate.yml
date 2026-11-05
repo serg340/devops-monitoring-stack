@@ -35,6 +35,13 @@ jobs:
             prom/prometheus:v3.15.1 \
             check config /etc/prometheus/prometheus.yml
 
+      - name: Validate Grafana Alloy configuration
+        run: |
+          docker run --rm \
+            -v "$PWD/alloy-config.alloy:/etc/alloy/config.alloy:ro" \
+            grafana/alloy:v1.21.3 \
+            validate /etc/alloy/config.alloy
+
       - name: Validate Nginx configuration
         run: |
           mkdir -p nginx/ssl
