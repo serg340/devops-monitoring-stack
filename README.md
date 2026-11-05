@@ -73,6 +73,36 @@ Nginx is the only publicly published service. MinIO is bound to loopback so a lo
 
 Docker Compose reads `.env` for variable substitution. The `.env.example` file contains placeholders only and is safe to commit.
 
+## Telegram notifications
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy its token.
+2. Start a private chat with the bot and send it a message (for example, `/start`).
+3. Obtain the destination chat ID using the Telegram Bot API `getUpdates` response, or use a trusted bot/chat-ID lookup method. For a group, add the bot and send a message in that group first.
+4. On the Docker host, create the secret files. Do not paste the bot token into Git, README, shell history, or chat:
+   ```bash
+   mkdir -p secrets
+   chmod 700 secrets
+   umask 077
+   read -rsp "Telegram bot token: " TELEGRAM_TOKEN
+   printf '\\n'
+   printf '%s' "$TELEGRAM_TOKEN" > secrets/telegram_bot_token
+   unset TELEGRAM_TOKEN
+   read -rp "Telegram chat ID: " TELEGRAM_CHAT_ID
+   printf '%s' "$TELEGRAM_CHAT_ID" > secrets/telegram_chat_id
+   unset TELEGRAM_CHAT_ID
+   chmod 600 secrets/telegram_bot_token secrets/telegram_chat_id
+   ```
+5. Validate and recreate Alertmanager:
+   ```bash
+   docker compose config --quiet
+   docker compose run --rm --no-deps alertmanager \\
+     amtool check-config /etc/alertmanager/alertmanager.yml
+   docker compose up -d --force-recreate alertmanager
+   ```
+6. Trigger a test alert (or wait for a real one) and confirm it arrives in Telegram. Resolved notifications are enabled.
+
+The Compose service mounts `secrets/` read-only. The CI workflow uses disposable placeholder files only to validate the configuration; it does not send Telegram messages.
+
 ## Backups
 
 The `backup.sh` script dumps the configured database from the running MySQL container and uploads the dump using a preconfigured MinIO Client alias. The MinIO API is available on the host at `127.0.0.1:9000` only.
@@ -137,7 +167,7 @@ The script removes its local temporary dump after the upload command succeeds. A
 └── prometheus.yml
 ```
 
-Prometheus evaluates the rules in `alert_rules.yml` and sends firing alerts to Alertmanager. The initial Alertmanager route uses a named `null` receiver: alerts are evaluated, grouped and visible in the Alertmanager UI, but no email, chat or webhook notifications are delivered until a real receiver is configured. The Alertmanager UI is bound to host loopback at `127.0.0.1:9093`; access it locally or through an SSH tunnel, not by exposing it publicly.
+Prometheus evaluates the rules in `alert_rules.yml` and sends firing alerts to Alertmanager. Alertmanager routes notifications to a Telegram bot and sends resolved notifications as well. The bot token and destination chat ID are read from files under the local `secrets/` directory, mounted read-only at `/run/secrets`; these files are ignored by Git and must never be committed. See the Telegram notifications setup below. The Alertmanager UI is bound to host loopback at `127.0.0.1:9093`; access it locally or through an SSH tunnel, not by exposing it publicly.
 
 Prometheus stores TSDB data in the persistent `prometheus-data` Docker volume. Its configured retention is three days or 2 GB, whichever limit is reached first. The volume preserves metrics across container recreation; it is not a backup. Prometheus also scrapes its own `/metrics` endpoint. Scrape targets carry `host` and `role` labels so dashboards and queries can distinguish the monitoring, GitLab, application, production and database hosts. cAdvisor collection is intentionally limited to selected container CPU, memory, network and lifecycle metrics.
 
