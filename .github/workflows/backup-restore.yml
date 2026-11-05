@@ -1,0 +1,168 @@
+name: Backup and restore integration test
+
+on:
+  push:
+    branches:
+      - security-hardening
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backup-restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare MinIO client
+        run: |
+          command -v aws
+          cat > /usr/local/bin/mc <<'EOF'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          CONFIG="${RUNNER_TEMP}/mc-test-config"
+          mkdir -p "$CONFIG"
+          ALIAS_FILE="$CONFIG/alias"
+          load_alias() {
+            test -f "$ALIAS_FILE" || { echo "MinIO alias is not configured" >&2; exit 1; }
+            # shellcheck disable=SC1090
+            source "$ALIAS_FILE"
+          }
+          case "${1:-}" in
+            alias)
+              shift
+              test "${1:-}" = set
+              shift
+              printf 'ENDPOINT=%q\nACCESS_KEY=%q\nSECRET_KEY=%q\n' "$2" "$3" "$4" > "$ALIAS_FILE"
+              ;;
+            mb)
+              shift
+              [[ "${1:-}" == --ignore-existing ]] && shift
+              load_alias
+              BUCKET="${1#*/}"
+              AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                aws --endpoint-url "$ENDPOINT" s3 mb "s3://$BUCKET" 2>/dev/null || true
+              ;;
+            cp)
+              shift
+              load_alias
+              SOURCE="$1"
+              DEST="$2"
+              if [[ "$SOURCE" == local/* ]]; then
+                KEY="${SOURCE#*/}"
+                AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                  aws --endpoint-url "$ENDPOINT" s3 cp "s3://$KEY" "$DEST"
+              elif [[ "$DEST" == local/* ]]; then
+                KEY="${DEST#*/}"
+                if [[ "$KEY" == */ ]]; then KEY="${KEY}$(basename "$SOURCE")"; fi
+                AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                  aws --endpoint-url "$ENDPOINT" s3 cp "$SOURCE" "s3://$KEY"
+              else
+                echo "Unsupported mc cp path" >&2; exit 1
+              fi
+              ;;
+            ls)
+              shift
+              load_alias
+              KEY="${1#*/}"
+              AWS_ACCESS_KEY_ID="$ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$SECRET_KEY" \
+                aws --endpoint-url "$ENDPOINT" s3 ls "s3://$KEY"
+              ;;
+            --version) echo "mc compatibility shim using AWS CLI";;
+            *) echo "Unsupported mc command: ${1:-}" >&2; exit 1;;
+          esac
+          EOF
+          chmod +x /usr/local/bin/mc
+          mc --version
+
+      - name: Start disposable MySQL and MinIO
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-mysql-password
+          MINIO_ROOT_USER: ciadmin
+          MINIO_ROOT_PASSWORD: ci-only-minio-password
+        run: |
+          docker run -d --name mysql \
+            -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+            -e MYSQL_DATABASE=sto_prod \
+            mysql:8
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
+            -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
+            pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data --console-address ":9001"
+
+          for attempt in $(seq 1 60); do
+            if docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"' >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"'
+
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null
+
+      - name: Seed test data and create backup bucket
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-mysql-password
+          MINIO_ROOT_USER: ciadmin
+          MINIO_ROOT_PASSWORD: ci-only-minio-password
+        run: |
+          docker exec -i mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot sto_prod' <<'SQL'
+          CREATE TABLE backup_restore_check (
+            id INT PRIMARY KEY,
+            marker VARCHAR(100) NOT NULL
+          );
+          INSERT INTO backup_restore_check (id, marker)
+          VALUES (1, 'backup-restore-integration-ok');
+          SQL
+
+          mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+          mc mb --ignore-existing local/mysql-backups
+          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_prod -e "SHOW TABLES"' | grep -qx backup_restore_check
+
+      - name: Run backup script
+        env:
+          BACKUP_DIR: ${{ runner.temp }}/backups
+          BACKUP_BUCKET_PATH: local/mysql-backups
+          BACKUP_DATABASE: sto_prod
+        run: ./backup.sh
+
+      - name: Restore backup into a fresh MySQL database
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-mysql-password
+        run: |
+          BACKUP_OBJECT="$(mc ls local/mysql-backups/ | awk '{print $NF}' | grep '\.sql$' | head -n 1)"
+          test -n "$BACKUP_OBJECT"
+          RESTORE_FILE="$RUNNER_TEMP/restore.sql"
+          mc cp "local/mysql-backups/$BACKUP_OBJECT" "$RESTORE_FILE"
+          test -s "$RESTORE_FILE"
+          grep -q 'backup_restore_check' "$RESTORE_FILE" || { echo "SQL dump does not contain the expected test table" >&2; exit 1; }
+
+          docker run -d --name mysql-restore \
+            -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+            -e MYSQL_DATABASE=sto_prod \
+            mysql:8
+
+          for attempt in $(seq 1 60); do
+            if docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"' >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"'
+
+          docker exec -i mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot sto_prod' < "$RESTORE_FILE"
+          RESULT="$(docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_prod -e "SELECT marker FROM backup_restore_check WHERE id = 1"')"
+          test "$RESULT" = "backup-restore-integration-ok"
+          echo "Backup and restore integration test passed."
+
+      - name: Clean up disposable containers
+        if: always()
+        run: docker rm -f mysql mysql-restore minio 2>/dev/null || true
