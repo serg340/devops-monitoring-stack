@@ -50,6 +50,12 @@ jobs:
             prom/prometheus:v3.15.1 \
             test rules /etc/prometheus/tests/alert_rules_test.yml
 
+      - name: Prepare placeholder Telegram secret files for validation
+        run: |
+          mkdir -p secrets
+          printf 'ci-only-placeholder-token\n' > secrets/telegram_bot_token
+          printf '123456789\n' > secrets/telegram_chat_id
+
       - name: Validate Alertmanager configuration
         run: |
           docker run --rm \
