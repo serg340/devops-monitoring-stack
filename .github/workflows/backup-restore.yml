@@ -125,7 +125,7 @@ jobs:
 
           mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
           mc mb --ignore-existing local/mysql-backups
-          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_prod -e "SHOW TABLES LIKE \"backup_restore_check\""' | grep -qx backup_restore_check
+          docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -N -uroot sto_prod -e "SHOW TABLES"' | grep -qx backup_restore_check
 
       - name: Run backup script
         env:
