@@ -86,7 +86,7 @@ jobs:
           docker run -d --name mysql \
             -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
             -e MYSQL_DATABASE=sto_prod \
-            mysql:8
+            mysql:8.4.13
           docker run -d --name minio \
             -p 9000:9000 \
             -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
@@ -149,7 +149,7 @@ jobs:
           docker run -d --name mysql-restore \
             -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
             -e MYSQL_DATABASE=sto_prod \
-            mysql:8
+            mysql:8.4.13
 
           for attempt in $(seq 1 60); do
             if docker exec mysql-restore sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -e "SELECT 1"' >/dev/null 2>&1; then
