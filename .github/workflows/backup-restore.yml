@@ -90,7 +90,7 @@ jobs:
             -p 9000:9000 \
             -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
             -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
-            quay.io/minio/minio:latest server /data --console-address ":9001"
+            pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data --console-address ":9001"
 
           for attempt in $(seq 1 60); do
             if docker exec mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin ping -uroot --silent' >/dev/null 2>&1; then
