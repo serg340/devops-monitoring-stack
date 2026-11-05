@@ -108,19 +108,37 @@ The script removes its local temporary dump after the upload command succeeds. A
 ## Project structure
 
 ```text
-docker-compose.yml
-prometheus.yml
-loki-config.yaml
-promtail-config.yaml
-backup.sh
-.env.example
-grafana/
-nginx/
+.
+├── .github/
+│   └── workflows/
+│       ├── validate.yml
+│       └── backup-restore.yml
+├── grafana/
+│   └── provisioning/
+│       └── datasources/
+│           └── prometheus.yml
+├── nginx/
+│   ├── nginx.conf
+│   └── ssl/                 # private TLS files; not committed
+├── .env.example
+├── .gitignore
+├── backup.sh
+├── docker-compose.yml
+├── loki-config.yaml
+├── prometheus.yml
+└── promtail-config.yaml
 ```
+
+The repository also currently contains `nginx/nginx.conf.save`, a legacy saved configuration that is not mounted by Docker Compose. Review it and remove it if it is no longer needed.
 
 ## Continuous integration
 
-GitHub Actions runs static checks on pushes to `main` and `security-hardening`, and on pull requests targeting `main`. The workflow validates Docker Compose interpolation, the Prometheus configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax. It does not deploy the stack or prove that backups can be restored.
+GitHub Actions runs two workflows on pushes to `main` and `security-hardening`, and on pull requests targeting `main`:
+
+- **Validate monitoring stack** checks Docker Compose interpolation, the Prometheus configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax.
+- **Backup and restore integration test** starts disposable MySQL and MinIO containers, runs `backup.sh`, restores the SQL dump into a fresh MySQL container, and verifies a known test record.
+
+These workflows validate configuration and the backup/restore script in an isolated CI environment. They do not deploy the stack or verify production server, firewall, TLS, or persistent-storage settings.
 
 ## Disclaimer
 
