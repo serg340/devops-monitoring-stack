@@ -76,18 +76,22 @@ services:
       - ./loki-data:/loki
     restart: unless-stopped
 
-  promtail:
-    image: grafana/promtail:2.9.0
-    container_name: promtail
+  alloy:
+    image: grafana/alloy:v1.21.3
+    container_name: alloy
     user: root
     volumes:
       - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
-      - ./positions:/tmp
-    command: -config.file=/etc/promtail/config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - ./alloy-data:/var/lib/alloy/data
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     restart: unless-stopped
+
 
   cadvisor:
     image: ghcr.io/google/cadvisor:v0.60.6
