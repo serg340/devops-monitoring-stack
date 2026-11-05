@@ -42,7 +42,9 @@ jobs:
             -keyout nginx/ssl/privkey.pem \
             -out nginx/ssl/fullchain.pem \
             -subj "/CN=localhost"
-          docker run --rm \
+          docker network create ci-net
+          docker run -d --name grafana-ci --network ci-net --network-alias grafana busybox:1.36 sleep 300
+          docker run --rm --network ci-net \
             -v "$PWD/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" \
             -v "$PWD/nginx/ssl:/etc/nginx/ssl:ro" \
             nginx:latest nginx -t
