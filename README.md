@@ -1,5 +1,8 @@
 # DevOps Monitoring Stack
 
+[![Validate monitoring stack](https://github.com/serg340/devops-monitoring-stack/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/serg340/devops-monitoring-stack/actions/workflows/validate.yml)
+[![Backup and restore integration test](https://github.com/serg340/devops-monitoring-stack/actions/workflows/backup-restore.yml/badge.svg?branch=main)](https://github.com/serg340/devops-monitoring-stack/actions/workflows/backup-restore.yml)
+
 A Docker Compose-based monitoring and centralized logging stack built as part of a STEP IT Academy team diploma project.
 
 ## My contribution
