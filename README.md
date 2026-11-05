@@ -118,6 +118,10 @@ grafana/
 nginx/
 ```
 
+## Continuous integration
+
+GitHub Actions runs static checks on pushes to `main` and `security-hardening`, and on pull requests targeting `main`. The workflow validates Docker Compose interpolation, the Prometheus configuration, the Nginx configuration (using a temporary self-signed certificate), and the backup script's Bash syntax. It does not deploy the stack or prove that backups can be restored.
+
 ## Disclaimer
 
 This is an educational project. Validate configuration, firewall rules, credentials, backup uploads and restore procedures in your own environment before production use.
