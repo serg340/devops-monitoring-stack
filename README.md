@@ -37,7 +37,7 @@ Linux hosts and Docker containers
 |---|---|---|
 | Nginx | HTTPS reverse proxy | Host ports 80 and 443 |
 | Grafana | Dashboards | Internal Docker network, via Nginx |
-| Prometheus | Metrics storage and scraping | Internal Docker network |
+| Prometheus | Metrics collection and TSDB storage (3 days / 2 GB) | Internal Docker network; persistent named volume |
 | Loki | Log storage with TSDB index and seven-day retention | Internal Docker network |
 | Grafana Alloy | Log collection and shipping | Internal Docker network; read-only host log mounts |
 | Node Exporter | Host metrics | Internal Docker network on this host |
@@ -129,6 +129,8 @@ The script removes its local temporary dump after the upload command succeeds. A
 ├── alloy-config.alloy
 └── prometheus.yml
 ```
+
+Prometheus stores TSDB data in the persistent `prometheus-data` Docker volume. Its configured retention is three days or 2 GB, whichever limit is reached first. The volume preserves metrics across container recreation; it is not a backup. Prometheus also scrapes its own `/metrics` endpoint.
 
 The former Promtail configuration has been replaced by `alloy-config.alloy`. Alloy persists its read positions and state under the ignored `alloy-data/` directory. Docker container logs are tailed from the host's `json-file` log paths; the Docker socket is not mounted.
 
